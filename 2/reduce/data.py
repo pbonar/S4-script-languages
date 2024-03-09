@@ -19,8 +19,11 @@ def sum_sizes(lines: Iterable[str]) -> int:
     return bytes
 
 def main() -> None:
-    bytes = sum_sizes(sys.stdin)        
-    print(bytes)
+    try:
+        bytes = sum_sizes(sys.stdin)
+        print(bytes)
+    except ValueError:
+        print("Malformed data")
 
 if __name__ == "__main__":
     main()

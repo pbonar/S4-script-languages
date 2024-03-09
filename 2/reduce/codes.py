@@ -19,11 +19,14 @@ def count_codes(lines: Iterable[str]) -> dict[int, int]:
     return codes
 
 def main() -> None:
-    codes = count_codes(sys.stdin)
-        
-    print(f"200: {codes[200]}")
-    print(f"302: {codes[302]}")
-    print(f"404: {codes[404]}")
+    try:
+        codes = count_codes(sys.stdin)
+            
+        print(f"200: {codes[200]}")
+        print(f"302: {codes[302]}")
+        print(f"404: {codes[404]}")
+    except ValueError:
+        print("Malformed data")
 
 if __name__ == "__main__":
     main()
