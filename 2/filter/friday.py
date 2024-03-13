@@ -1,5 +1,5 @@
 # Funkcje filtrujące
-# C)
+# G)
 
 import sys
 from datetime import datetime
