@@ -4,7 +4,7 @@
 import sys
 from typing import Iterable
 
-def find_biggest(lines: Iterable[str]) -> dict[int, int]:
+def find_biggest(lines: Iterable[str]) -> tuple[str, int]:
     current_size = 0
     current_address = ""
     for line in lines:

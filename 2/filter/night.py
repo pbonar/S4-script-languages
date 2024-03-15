@@ -2,8 +2,7 @@
 # F)
 
 import sys
-from datetime import datetime
-from typing import Iterable, Literal
+from typing import Iterable
 
 
 def filter_hours(lines: Iterable[str]) -> list[str]:

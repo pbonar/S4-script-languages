@@ -12,7 +12,7 @@ def filter_code(lines: Iterable[str], search_code: int) -> list[str]:
         tokens = line.split(" ")
         code = tokens[-2]
 
-        if code == search_code:
+        if int(code) == search_code:
             res.append(line.rstrip())
 
     return res
@@ -20,7 +20,7 @@ def filter_code(lines: Iterable[str], search_code: int) -> list[str]:
 
 def main() -> None:
     try:
-        lines = filter_code(sys.stdin, "200")
+        lines = filter_code(sys.stdin, 200)
         for line in lines:
             print(line)
     except ValueError:

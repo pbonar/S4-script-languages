@@ -4,7 +4,7 @@
 import sys
 from typing import Iterable
 
-def find_ratio(lines: Iterable[str]) -> dict[int, int]:
+def find_ratio(lines: Iterable[str]) -> float:
     total_req = 0
     image_req = 0
     for line in lines:
