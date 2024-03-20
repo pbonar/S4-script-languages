@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from typing import List, Tuple, Union
+from typing import Dict, Tuple, TypedDict
 
 # CZESC 2
 
@@ -37,7 +37,7 @@ def get_entries_by_addr(log_list: list[Tuple], hostname: str) -> list[Tuple]:
 def get_entries_by_code(log_list: list[Tuple], status_code: int) -> list[Tuple]:
     return list(filter(lambda x: x[-2] == status_code, log_list))
 
-def get_failed_reads(log_list: list[Tuple], joined: bool) -> list[Tuple] or Tuple[list[Tuple], list[Tuple]]:
+def get_failed_reads(log_list: list[Tuple], joined: bool) -> list[Tuple] | Tuple[list[Tuple], list[Tuple]]:
     log_4xx = []
     log_5xx = []
     
@@ -60,10 +60,12 @@ def print_entries(log_list: list[Tuple]) -> None:
 
 
 # CZESC 3
+        
+DictEntry = TypedDict('DictEntry', {'ip': str, 'date': datetime, 'request_details': str, 'status_code': int, 'size': int})
 
-def entry_to_dict(entry_tuple: tuple):
+def entry_to_dict(entry_tuple: Tuple) -> DictEntry:
     # hostname, date, request_details, status_code, size
-    entry_dict = {
+    entry_dict: DictEntry = {
         "ip": entry_tuple[0],
         "date": entry_tuple[1],
         "request_details": entry_tuple[2],
@@ -72,8 +74,8 @@ def entry_to_dict(entry_tuple: tuple):
     }
     return entry_dict
 
-def log_to_dict(log: list[Tuple]):
-    log_dict = {}
+def log_to_dict(log: list[Tuple]) -> Dict[str, list[DictEntry]]:
+    log_dict: Dict = {}
     for one_tuple in log:
         one_dict = entry_to_dict(one_tuple)
         one_ip = one_dict["ip"]
@@ -82,10 +84,10 @@ def log_to_dict(log: list[Tuple]):
         log_dict[one_ip].append(one_dict)
     return log_dict
 
-def get_addresses(log_dict: dict):
+def get_addresses(log_dict: Dict) -> list[str]:
     return list(log_dict.keys())
 
-def print_dict_entry_dates(log_dict: dict):
+def print_dict_entry_dates(log_dict: Dict) -> None:
     for address, entries in log_dict.items():
         total_requests = len(entries)
         successful_requests = 0
