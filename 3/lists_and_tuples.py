@@ -90,12 +90,10 @@ def get_addresses(log_dict: Dict) -> list[str]:
 def print_dict_entry_dates(log_dict: Dict) -> None:
     for address, entries in log_dict.items():
         total_requests = len(entries)
-        successful_requests = 0
-        dates = []
-        for entry in entries:
-            dates.append(entry["date"])
-            if entry["status_code"] == 200:
-                successful_requests += 1
+        successful_requests = sum(1 for entry in entries if entry["status_code"] == 200)
+        first_request_date = min(entry["date"] for entry in entries)
+        last_request_date = max(entry["date"] for entry in entries)
+
         if total_requests != 0:
             success_ratio = successful_requests / total_requests
         else:
@@ -103,9 +101,9 @@ def print_dict_entry_dates(log_dict: Dict) -> None:
 
         print(f"IP/Address: {address}")
         print(f"  Total Requests: {total_requests}")
-        print(f"  First Request Date: {min(dates)}")
-        print(f"  Last Request Date: {max(dates)}")
-        print(f"  Success Ratio: {success_ratio:.2f}")
+        print(f"  First Request Date: {first_request_date}")
+        print(f"  Last Request Date: {last_request_date}")
+        print(f"  Success Ratio: {success_ratio}")
         print()
 
 
