@@ -99,7 +99,7 @@ def print_dict_entry_dates(log_dict: dict):
         else:
             success_ratio = 0
 
-        print(f"Address: {address}")
+        print(f"IP/Address: {address}")
         print(f"  Total Requests: {total_requests}")
         print(f"  First Request Date: {min(dates)}")
         print(f"  Last Request Date: {max(dates)}")
