@@ -21,7 +21,14 @@ def count_codes(lines: Iterable[str]) -> dict[int, int]:
 def main() -> None:
     try:
         codes = count_codes(sys.stdin)
-            
+        
+        if not 200 in codes.keys():
+            codes[200] = 0
+        if not 302 in codes.keys():
+            codes[302] = 0
+        if not 404 in codes.keys():
+            codes[404] = 0
+
         print(f"200: {codes[200]}")
         print(f"302: {codes[302]}")
         print(f"404: {codes[404]}")
