@@ -18,7 +18,7 @@ def read_log() -> list[Tuple]:
         request_details: str = line.split('"')[1].split('"')[0]
         
         status_code: int = int(tokens[-2])
-        size: int | None = int(tokens[-1]) if tokens[-1] != "-" else None
+        size: int = int(tokens[-1]) if tokens[-1] != "-" else 0
         
         res.append((hostname, date, request_details, status_code, size))
     
@@ -111,7 +111,7 @@ def main() -> None:
     log_list = read_log()
     
     # print(log_list)
-    # print(sort_log(log_list, 6))
+    # print(sort_log(log_list, 4))
     # print(get_entries_by_addr(log_list, "burger.letters.com"))
     # print(get_entries_by_code(log_list, 404))
     # print(get_failed_reads(log_list, False))
