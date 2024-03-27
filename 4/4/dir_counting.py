@@ -3,21 +3,22 @@ import subprocess
 import json
 import sys
 from collections import Counter
+from typing import Dict
 
-def analyze_file(file_path):
-    result = subprocess.run(["python", "./4/4/counting.py", file_path], capture_output=True, text=True)
+def analyze_file(file_path) -> Dict:
+    result = subprocess.run(["python3", "./4/4/counting.py", file_path], capture_output=True, text=True)
     print(result)
     output = json.loads(result.stdout)
     return output
 
-def main(directory):
+def main(directory) -> None:
     list = []
     total_files = 0
     total_characters = 0
     total_words = 0
     total_lines = 0
-    character_counter = Counter()
-    word_counter = Counter()
+    character_counter: Counter = Counter()
+    word_counter: Counter = Counter()
 
     for root, dirs, files in os.walk(directory):
         for file in files:

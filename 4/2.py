@@ -1,7 +1,7 @@
 import os
 import argparse
 
-def print_path_dir():
+def print_path_dir() -> None:
     path = os.getenv("PATH")
     if path:
         directories = path.split(os.pathsep)
@@ -9,7 +9,7 @@ def print_path_dir():
             if directory != "":
                 print(" -", directory)
 
-def print_path_exe():
+def print_path_exe() -> None:
     path = os.getenv("PATH")
     if path:
         directories = path.split(os.pathsep)
@@ -24,8 +24,8 @@ def print_path_exe():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Operacje na sciezkach")
-    parser.add_argument("-d", action="store_true")
-    parser.add_argument("-e", action="store_true")
+    parser.add_argument("-d", help="Katalogi w zmiennej PATH", action="store_true")
+    parser.add_argument("-e", help="Pliki wykonywalne w każdym katalogu z zmiennej PATH", action="store_true")
 
     args = parser.parse_args()
 

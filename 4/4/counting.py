@@ -2,8 +2,9 @@ import json
 import sys
 import os
 from collections import Counter
+from typing import Dict
 
-def analyze_file(file_path):
+def analyze_file(file_path) -> Dict:
     with open(file_path, 'r') as file:
 
         content = file.read()
@@ -28,7 +29,7 @@ def analyze_file(file_path):
             'most_common_word': most_common_word
         }
 
-def main():
+def main() -> None:
 
     # file_path = input("Podaj sciezke do pliku")
     file_path = sys.argv[1]
