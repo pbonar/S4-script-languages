@@ -4,11 +4,35 @@ import re
 import logging
 import sys
 import random
+import argparse
+
+
+# Argparse
+argparser = argparse.ArgumentParser(description="SSH Log Parser")
+argparser.add_argument("file", type=str, help="Path to the log file")
+argparser.add_argument("-v", "--verbosity", type=int, default=1, help="Logging verbosity level (-50)")
+
+sub_parsers = argparser.add_subparsers(
+    title="Mode",
+    dest="mode",
+    required=True
+)
+
+parser_print_parsed = sub_parsers.add_parser("print_parsed", help="Print parsed logs")
+parser_print_random_user = sub_parsers.add_parser("random_user", help="Print n random logs for a random user")
+parser_print_avg_session_duration = sub_parsers.add_parser("avg_session_duration", help="Print average session duration")
+parser_print_most_least_logged_in_user = sub_parsers.add_parser("most_least_logged_in_user", help="Print most and least logged in user")
+
+parser_print_random_user.add_argument("-n", "--number", type=int, help="Number of logs to print", required=True)
+parser_print_avg_session_duration.add_argument("-u", "--user", type=str, help="User to calculate average session duration for", required=False)
+
+args = argparser.parse_args()
+# Argparse
 
 
 # Logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(50 - args.verbosity * 10)
 
 h1 = logging.StreamHandler(sys.stdout)
 h1.setLevel(logging.DEBUG)
@@ -87,7 +111,7 @@ def n_logs_for_random_user(logs: list[LogEntry], n: int, users: set[str]) -> lis
     all = list(filter(lambda x: get_user_from_log(x) == user, logs))
     
     # return n random logs
-    return random.sample(all, n)
+    return random.sample(all, n if n <= len(all) else len(all))
 
 
 def calculate_avg_session_duration(logs: list[LogEntry]) -> float:
@@ -105,17 +129,29 @@ def calculate_avg_session_duration(logs: list[LogEntry]) -> float:
     return duration / count if count > 0 else 0
 
 
-def main() -> None:
-    logger.info("Started")
+def find_most_least_logged_in_user(logs: list[LogEntry]) -> tuple[str, str]:
+    users: dict[str, int] = {}
     
-    f = open("SSH.log", "r")
+    for log in logs:
+        user = get_user_from_log(log)
+        if user:
+            if user not in users:
+                users[user] = 0
+            users[user] += 1
     
-    entries = []
+    most = max(users, key=users.__getitem__)
+    least = min(users, key=users.__getitem__)
     
-    for line in f.readlines():
+    return most, least
+
+
+def parse_all(lines: list[str]) -> list[LogEntry]:
+    entries: list[LogEntry] = []
+    
+    for line in lines:
         logger.debug(f"Bytes read: {len(line.encode('utf-8'))}")
-        
         entry = parse_line(line)
+        entries.append(entry)
         
         ip = get_ipv4s_from_log(entry)
         user = get_user_from_log(entry)
@@ -130,12 +166,49 @@ def main() -> None:
                 logger.error(f"WrongPassword: (IP: {ip}) (User: {user})")
             case "PossibleBreakIn":
                 logger.critical(f"PossibleBreakIn: (IP: {ip}) (User: {user})")
-        entries.append(entry)
     
-    # print(calculate_avg_session_duration(entries))
+    return entries
+
+
+def print_parsed(entries: list[LogEntry]) -> None:
+    for entry in entries:
+        ip = get_ipv4s_from_log(entry)
+        user = get_user_from_log(entry)
+        message_type = get_message_type(entry)
+        
+        print(f"(IP: {ip}) (User: {user}) (Message type: {message_type})")
+
+
+def main() -> None:
+    f = open("SSH.log", "r")
+    entries = parse_all(f.readlines())
+    
+    match args.mode:
+        case "print_parsed":
+            print(">> Print parsed logs")
+            print_parsed(entries)
+        case "random_user":
+            print(">> Print n random logs for a random user")
+            logs = n_logs_for_random_user(entries, args.number, set(y for x in entries if (y := get_user_from_log(x)) is not None))
+            for log in logs:
+                print(log)
+        case "avg_session_duration":
+            if args.user:
+                print(f">> Print average session duration for user {args.user}")
+                print(f"{calculate_avg_session_duration(list(filter(lambda x: get_user_from_log(x) == args.user, entries)))} s")
+            else:
+                print(">> Print average session duration")
+                print(f"{calculate_avg_session_duration(entries)} s")
+        case "most_least_logged_in_user":
+            print(">> Print most and least logged in user")
+            
+            most, least = find_most_least_logged_in_user(entries)
+            
+            print(f"Most logged in user: {most}")
+            print(f"Least logged in user: {least}")
     
     f.close()
-    logger.info("Finished")
+
 
 if __name__ == "__main__":
     main()
