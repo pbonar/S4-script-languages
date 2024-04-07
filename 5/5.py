@@ -20,12 +20,12 @@ sub_parsers = argparser.add_subparsers(
 
 parser_print_parsed = sub_parsers.add_parser("print_parsed", help="Print parsed logs")
 parser_print_random_user = sub_parsers.add_parser("random_user", help="Print n random logs for a random user")
-parser_print_avg_session_duration = sub_parsers.add_parser("avg_session_duration", help="Print average session duration")
+parser_session_duration_stats = sub_parsers.add_parser("session_duration_stats", help="Print average session duration and std. deviation")
 parser_print_most_least_logged_in_user = sub_parsers.add_parser("most_least_logged_in_user", help="Print most and least logged in user")
 parser_detect_bruteforce = sub_parsers.add_parser("detect_bruteforce", help="Detect bruteforce")
 
 parser_print_random_user.add_argument("-n", "--number", type=int, help="Number of logs to print", required=True)
-parser_print_avg_session_duration.add_argument("-u", "--user", type=str, help="User to calculate average session duration for", required=False)
+parser_session_duration_stats.add_argument("-u", "--user", type=str, help="User to calculate stats for (defailt: all)", required=False)
 
 parser_detect_bruteforce.add_argument("-u", "--user", type=str, help="User to detect bruteforce for (default: all)", required=False)
 parser_detect_bruteforce.add_argument("-t", "--max_delay", type=int, help="Max delay between attempts in seconds", default=5)
@@ -119,19 +119,28 @@ def n_logs_for_random_user(logs: list[LogEntry], n: int, users: set[str]) -> lis
     return random.sample(all, n if n <= len(all) else len(all))
 
 
-def calculate_avg_session_duration(logs: list[LogEntry]) -> float:
-    duration = 0.0
-    count = 0
+def session_duration_stats(logs: list[LogEntry]) -> tuple[float, float]:
+    durations: list[float] = []
+    
+    open_date: dict[str, datetime] = {}
     
     for log in logs:
+        user = get_user_from_log(log)
+        if not user:
+            continue
+        
         match get_message_type(log):
             case "SessionOpened":
-                date = log["date"]
+                open_date[user] = log["date"]
             case "SessionClosed":
-                duration += (log["date"] - date).total_seconds()
-                count += 1
+                if user in open_date:
+                    durations.append((log["date"] - open_date[user]).total_seconds())
+                    open_date.pop(user)
+
+    average = sum(durations) / len(durations) if len(durations) > 0 else 0
+    standard_deviation = (sum([(x - average) ** 2 for x in durations]) / len(durations)) ** 0.5 if len(durations) > 0 else 0
     
-    return duration / count if count > 0 else 0
+    return average, standard_deviation
 
 
 def find_most_least_logged_in_user(logs: list[LogEntry]) -> tuple[str, str]:
@@ -228,18 +237,30 @@ def main() -> None:
         case "print_parsed":
             print(">> Print parsed logs")
             print_parsed(entries)
+
         case "random_user":
             print(">> Print n random logs for a random user")
             logs = n_logs_for_random_user(entries, args.number, set(y for x in entries if (y := get_user_from_log(x)) is not None))
             for log in logs:
                 print(log)
-        case "avg_session_duration":
+
+        case "session_duration_stats":
             if args.user:
-                print(f">> Print average session duration for user {args.user}")
-                print(f"{calculate_avg_session_duration(list(filter(lambda x: get_user_from_log(x) == args.user, entries)))} s")
+                print(f">> Print session stats for user {args.user}")
+                
+                avg, std = session_duration_stats(list(filter(lambda x: get_user_from_log(x) == args.user, entries)))
+                
+                print(f"Average: {avg} s")
+                print(f"Standard deviation: {std} s")
+
             else:
-                print(">> Print average session duration")
-                print(f"{calculate_avg_session_duration(entries)} s")
+                print(">> Print session stats")
+                
+                avg, std = session_duration_stats(entries)
+                
+                print("Average: {:0.2f} s".format(avg))
+                print("Standard deviation: {:0.2f} s".format(std))
+
         case "most_least_logged_in_user":
             print(">> Print most and least logged in user")
             
@@ -247,6 +268,7 @@ def main() -> None:
             
             print(f"Most logged in user: {most}")
             print(f"Least logged in user: {least}")
+
         case "detect_bruteforce":
             print(f">> Detect bruteforce - Max delay between attempts: {args.max_delay}s, Max attempts: {args.max_attempts}")
             attacks = detect_bruteforce(entries, max_delay=args.max_delay, max_attempts=args.max_attempts, user_to_detect=args.user)
