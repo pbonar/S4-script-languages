@@ -197,10 +197,7 @@ def print_parsed(entries: list[LogEntry]) -> None:
 
 
 def detect_bruteforce(entries: list[LogEntry], max_delay: int, max_attempts: int, user_to_detect: str | None) -> dict[str, int]:
-    # Find the maximum chain of attempts for every IP
-    # If the chain is longer than max_attempts, it's a bruteforce attack
-    # If there's a delay longer than max_delay between attempts, it's a new chain
-    
+
     longest_chains_for_ip: dict[str, int] = {}
     current_chains_for_ip: dict[str, int] = {}
     
