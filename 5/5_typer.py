@@ -4,40 +4,12 @@ import re
 import logging
 import sys
 import random
-import argparse
+import typer
 
-
-# Argparse
-argparser = argparse.ArgumentParser(description="SSH Log Parser")
-argparser.add_argument("file", type=str, help="Path to the log file")
-argparser.add_argument("-v", "--verbosity", type=int, default=0, help="Logging verbosity level (0-5)")
-
-sub_parsers = argparser.add_subparsers(
-    title="Mode",
-    dest="mode",
-    required=True
-)
-
-parser_print_parsed = sub_parsers.add_parser("print_parsed", help="Print parsed logs")
-parser_print_random_user = sub_parsers.add_parser("random_user", help="Print n random logs for a random user")
-parser_session_duration_stats = sub_parsers.add_parser("session_duration_stats", help="Print average session duration and std. deviation")
-parser_print_most_least_logged_in_user = sub_parsers.add_parser("most_least_logged_in_user", help="Print most and least logged in user")
-parser_detect_bruteforce = sub_parsers.add_parser("detect_bruteforce", help="Detect bruteforce")
-
-parser_print_random_user.add_argument("-n", "--number", type=int, help="Number of logs to print", required=True)
-parser_session_duration_stats.add_argument("-u", "--user", type=str, help="User to calculate stats for (defailt: all)", required=False)
-
-parser_detect_bruteforce.add_argument("-u", "--user", type=str, help="User to detect bruteforce for (default: all)", required=False)
-parser_detect_bruteforce.add_argument("-t", "--max_delay", type=int, help="Max delay between attempts in seconds", default=5)
-parser_detect_bruteforce.add_argument("-a", "--max_attempts", type=int, help="Max attempts", default=3)
-
-args = argparser.parse_args()
-# Argparse
-
+app = typer.Typer()
 
 # Logger
 logger = logging.getLogger(__name__)
-logger.setLevel(51 - args.verbosity * 10)
 
 h1 = logging.StreamHandler(sys.stdout)
 h1.setLevel(logging.DEBUG)
@@ -50,6 +22,9 @@ logger.addHandler(h1)
 logger.addHandler(h2)
 # Logger
 
+state: dict[str, list] = {
+    "entries": []
+}
 
 LogEntry = TypedDict('LogEntry', {
     "date": datetime,
@@ -187,7 +162,7 @@ def parse_all(lines: list[str]) -> list[LogEntry]:
     return entries
 
 
-def print_parsed(entries: list[LogEntry]) -> None:
+def _print_parsed(entries: list[LogEntry]) -> None:
     for entry in entries:
         ip = get_ipv4s_from_log(entry)
         user = get_user_from_log(entry)
@@ -196,7 +171,7 @@ def print_parsed(entries: list[LogEntry]) -> None:
         print(f"(IP: {ip}) (User: {user}) (Message type: {message_type})")
 
 
-def detect_bruteforce(entries: list[LogEntry], max_delay: int, max_attempts: int, user_to_detect: str | None) -> dict[str, int]:
+def _detect_bruteforce(entries: list[LogEntry], max_delay: int, max_attempts: int, user_to_detect: str | None) -> dict[str, int]:
     # Find the maximum chain of attempts for every IP
     # If the chain is longer than max_attempts, it's a bruteforce attack
     # If there's a delay longer than max_delay between attempts, it's a new chain
@@ -232,54 +207,65 @@ def detect_bruteforce(entries: list[LogEntry], max_delay: int, max_attempts: int
     return dict(filter(lambda x: x[1] > max_attempts, longest_chains_for_ip.items()))
 
 
-def main() -> None:
-    f = open(args.file, "r")
+@app.command()
+def print_parsed():
+    print(">> Print parsed logs")
+    _print_parsed(state["entries"])
+    
+    
+@app.command()
+def random_user(number: int):
+    print(">> Print n random logs for a random user")
+    logs = n_logs_for_random_user(state["entries"], number, set(y for x in state["entries"] if (y := get_user_from_log(x)) is not None))
+    for log in logs:
+        print(log)
+
+
+@app.command()
+def print_session_stats(user: str = ""):
+    if user != "":
+        print(f">> Print session stats for user {user}")
+        
+        avg, std = session_duration_stats(list(filter(lambda x: get_user_from_log(x) == user, state["entries"])))
+        
+        print(f"Average: {avg} s")
+        print(f"Standard deviation: {std} s")
+
+    else:
+        print(">> Print session stats")
+        
+        avg, std = session_duration_stats(state["entries"])
+        
+        print("Average: {:0.2f} s".format(avg))
+        print("Standard deviation: {:0.2f} s".format(std))
+
+
+@app.command()
+def most_least_logged_in_user():
+    print(">> Print most and least logged in user")
+    
+    most, least = find_most_least_logged_in_user(state["entries"])
+    
+    print(f"Most logged in user: {most}")
+    print(f"Least logged in user: {least}")
+
+
+@app.command()
+def detect_bruteforce(user: str = "", max_delay: int = 5, max_attempts: int = 3):
+    print(f">> Detect bruteforce - Max delay between attempts: {max_delay}s, Max attempts: {max_attempts}")
+    attacks = _detect_bruteforce(state["entries"], max_delay=max_delay, max_attempts=max_attempts, user_to_detect=(user if user != "" else None))
+    for ip, attempts in attacks.items():
+        print(f"Bruteforce attack detected from {ip} ({attempts} attempts)")
+
+
+@app.callback()
+def main(log_file: str, verbosity: int = 0):
+    logger.setLevel(51 - verbosity * 10)
+    
+    f = open(log_file, "r")
     entries = parse_all(f.readlines())
-    
-    match args.mode:
-        case "print_parsed":
-            print(">> Print parsed logs")
-            print_parsed(entries)
-
-        case "random_user":
-            print(">> Print n random logs for a random user")
-            logs = n_logs_for_random_user(entries, args.number, set(y for x in entries if (y := get_user_from_log(x)) is not None))
-            for log in logs:
-                print(log)
-
-        case "session_duration_stats":
-            if args.user:
-                print(f">> Print session stats for user {args.user}")
-                
-                avg, std = session_duration_stats(list(filter(lambda x: get_user_from_log(x) == args.user, entries)))
-                
-                print(f"Average: {avg} s")
-                print(f"Standard deviation: {std} s")
-
-            else:
-                print(">> Print session stats")
-                
-                avg, std = session_duration_stats(entries)
-                
-                print("Average: {:0.2f} s".format(avg))
-                print("Standard deviation: {:0.2f} s".format(std))
-
-        case "most_least_logged_in_user":
-            print(">> Print most and least logged in user")
-            
-            most, least = find_most_least_logged_in_user(entries)
-            
-            print(f"Most logged in user: {most}")
-            print(f"Least logged in user: {least}")
-
-        case "detect_bruteforce":
-            print(f">> Detect bruteforce - Max delay between attempts: {args.max_delay}s, Max attempts: {args.max_attempts}")
-            attacks = detect_bruteforce(entries, max_delay=args.max_delay, max_attempts=args.max_attempts, user_to_detect=args.user)
-            for ip, attempts in attacks.items():
-                print(f"Bruteforce attack detected from {ip} ({attempts} attempts)")
-    
-    f.close()
+    state["entries"] = entries
 
 
 if __name__ == "__main__":
-    main()
+    app()
