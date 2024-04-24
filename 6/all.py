@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from ipaddress import IPv4Address
 import re
 
@@ -122,13 +123,14 @@ class SSHLogJournal:
             if criteria in entry._raw_content:
                 filtered_logs.append(entry)
         return filtered_logs
+
     def print(self):
-        for entry in journal:
+        for entry in self:
             print(entry)
 
     def search_entry_log(self, log):
         entry = self.parse_log(log)
-        return entry in journal
+        return entry in self
 
     def search_entry(self, time, raw_content, pid, host):
         if "failed password" in raw_content.lower():
@@ -139,29 +141,66 @@ class SSHLogJournal:
             entry = Error(time, raw_content, pid, host)
         else:
             entry = OtherInfo(time, raw_content, pid, host)
-        return entry in journal
+        return entry in self
 
-# init
-journal = SSHLogJournal()
-file_path = "S4/SSH_shorter.log"
-with open(file_path, 'r') as file:
-    log_lines = file.readlines()
-for line in log_lines:
-    journal.append(line)
+    def __getitem__(self, search):
+        if isinstance(search, slice):
+            return self._log_entries[search.start:search.stop:search.step]
+        elif isinstance(search, int):
+            return self._log_entries[search]
+        elif isinstance(search, IPv4Address):
+            return [entry for entry in self._log_entries if entry.has_ip and entry._extract_ip() == search]
+        elif isinstance(search, str):
+            return [entry for entry in self._log_entries if search in entry.time]
+        else:
+            raise ValueError("Invalid argument type")
 
-# tests
-# dlugosc dziennika
-print("Długość dziennika:", len(journal))
 
-# dziennik
-journal.print()
+class SSHUser:
+    def __init__(self, name, last_login):
+        self.name = name
+        self.last_login = last_login
+    
+    def __repr__(self):
+        return f"SSHUser >> name = {self.name}, last_login = {self.last_login}"
 
-# logi w ktorych jest jakas fraza
-print("Logi zawierające 'Failed password':", journal.get_logs_by_string("Failed password"))
-print("Logi zawierające 'disconnect':", journal.get_logs_by_string("disconnect"))
+    def validate(self):
+        return re.match(r'^[a-z_][a-z0-9_-]{0,31}$', self.name) is not None
 
-print("Czy dziennik zawiera określony wpis:", journal.search_entry("Dec 10 09:12:48",
-                                "Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]",
-                                "shd[24503]", "LabSZ"))
 
-print("Czy dziennik zawiera określony wpis:", journal.search_entry_log("Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]"))
+def main() -> None:
+    # init
+    journal = SSHLogJournal()
+    file_path = "OpenSSH_2k.log"
+    with open(file_path, 'r') as file:
+        log_lines = file.readlines()
+    for line in log_lines:
+        journal.append(line)
+
+    # tests
+    print("Długość dziennika:", len(journal))
+    journal.print()
+
+    # logi w których jest jakaś fraza
+    print("Logi zawierające 'Failed password':", journal.get_logs_by_string("Failed password"))
+    print("Logi zawierające 'disconnect':", journal.get_logs_by_string("disconnect"))
+
+    print("Czy dziennik zawiera określony wpis:", journal.search_entry("Dec 10 09:12:48",
+                                    "Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]",
+                                    "shd[24503]", "LabSZ"))
+
+    print("Czy dziennik zawiera określony wpis:", journal.search_entry_log("Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]"))
+
+    # duck typing
+    test = [
+        SSHUser("user123", datetime.now()),
+        SSHUser("admin", datetime.now()),
+        SSHUser("1abc", datetime.now()), # invalid name
+        *journal[5:10]
+    ]
+    for a in test:
+        print(a.validate())
+
+
+if __name__ == "__main__":
+    main()
