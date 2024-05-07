@@ -1,5 +1,8 @@
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QMainWindow, QPushButton, QWidget, QLineEdit, QLabel, QGridLayout, QScrollArea
 import sys
+from functools import partial
+
+from lib import parse_line, get_ipv4s_from_log, get_user_from_log
 
 
 class TopSection(QWidget):
@@ -20,10 +23,22 @@ class TopSection(QWidget):
 
 
 class MiddleSection(QWidget):
+    STYLES = {
+        "unselected_line": "border: 1px solid black; padding: 5px; margin: 0px; background-color: white; text-align: left;",
+        "selected_line": "border: 1px solid black; padding: 5px; margin: 0px; background-color: #f0f0f0; text-align: left; font-weight: bold;",
+        
+        "details_container": "background-color: #f0f0f0; border: 1px solid black; padding: 10px; margin: 0px",
+        "details_first_column": "font-weight: bold; border: none; padding: 5px; margin: 0px; background-color: #f0f0f0;",
+        "details_second_column": "border: 1px solid black; padding: 5px; margin: 0px; background-color: white;"
+    }
+    
+    lines: list[str]
     log_display: QVBoxLayout
+    middle_right_layout: QGridLayout
     
     def __init__(self):
         super().__init__()
+        self.lines = []
         
         # main section - log display
         self.log_display = QVBoxLayout()
@@ -37,33 +52,33 @@ class MiddleSection(QWidget):
         scroll.setWidgetResizable(True)
         
         # on the right - specific log details
-        middle_right_layout = QGridLayout()
+        self.middle_right_layout = QGridLayout()
         
         details_container = QWidget()
-        details_container.setLayout(middle_right_layout)
+        details_container.setLayout(self.middle_right_layout)
         
-        details_container.setFixedHeight(200)
-        details_container.setStyleSheet("background-color: #f0f0f0; border: 1px solid black; padding: 10px; margin: 0px")
+        details_container.setFixedHeight(300)
+        details_container.setStyleSheet(self.STYLES["details_container"])
         
         data_widgets = [
-            "hostname", "username", "date", "time", "status code", "method", "size"
+            "Remote host", "User", "Date", "Time", "Status Code", "Method", "Size"
         ]
         
         # fist column
         for i, label in enumerate(data_widgets):
             x = QLabel(label)
-            x.setStyleSheet("font-weight: bold; border: none; padding: 5px; margin: 0px; background-color: #f0f0f0;")
-            middle_right_layout.addWidget(x, i, 0)
+            x.setStyleSheet(self.STYLES["details_first_column"])
+            self.middle_right_layout.addWidget(x, i, 0)
         
         # second column
         for i in range(len(data_widgets)):
             x = QLabel("-")
-            x.setStyleSheet("border: 1px solid black; padding: 5px; margin: 0px; background-color: white;")
-            middle_right_layout.addWidget(x, i, 1)
+            x.setStyleSheet(self.STYLES["details_second_column"])
+            self.middle_right_layout.addWidget(x, i, 1)
             
         # minimum width
-        middle_right_layout.setColumnMinimumWidth(0, 100)
-        middle_right_layout.setColumnMinimumWidth(1, 100)
+        self.middle_right_layout.setColumnMinimumWidth(0, 100)
+        self.middle_right_layout.setColumnMinimumWidth(1, 200)
         
         # combine both
         middle_layout = QHBoxLayout()
@@ -73,14 +88,36 @@ class MiddleSection(QWidget):
         self.setLayout(middle_layout)
 
     def set_lines(self, lines):
+        self.lines = lines
+        
         while self.log_display.count():
             self.log_display.takeAt(0).widget().deleteLater()
         
-        for line in lines:
-            label = QLabel(line[:50] + "..." if len(line) > 50 else line)
-            label.setStyleSheet("border: 1px solid black; padding: 5px; margin: 0px; background-color: white;")
+        for i, line in enumerate(lines[:50]):
+            label = QPushButton(line[:50] + "..." if len(line) > 50 else line)
+            label.setStyleSheet(self.STYLES["unselected_line"])
+            
+            label.clicked.connect(partial(self.select_line, i))
+
             self.log_display.addWidget(label)
 
+    def select_line(self, i):
+        # set color for selected line
+        for j in range(self.log_display.count()):
+            self.log_display.itemAt(j).widget().setStyleSheet(self.STYLES["unselected_line"] if j != i else self.STYLES["selected_line"])
+        
+        # update details
+        details = parse_line(self.lines[i])
+        ipv4s = get_ipv4s_from_log(details)
+        user = get_user_from_log(details)
+        
+        # clear middle_right_layout right column
+        COLUMN_START = 7
+        self.middle_right_layout.itemAt(COLUMN_START).widget().setText(ipv4s[0] if ipv4s else "-")
+        self.middle_right_layout.itemAt(COLUMN_START + 1).widget().setText(user or "-")
+        self.middle_right_layout.itemAt(COLUMN_START + 2).widget().setText(details["date"].strftime("%b %d"))
+        self.middle_right_layout.itemAt(COLUMN_START + 3).widget().setText(details["date"].strftime("%H:%M:%S"))
+        
 
 class BottomSection(QWidget):
     def __init__(self):
