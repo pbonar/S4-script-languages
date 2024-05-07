@@ -36,6 +36,8 @@ class MiddleSection(QWidget):
     log_display: QVBoxLayout
     middle_right_layout: QGridLayout
     
+    selected_line: int = -1
+    
     def __init__(self):
         super().__init__()
         self.lines = []
@@ -89,11 +91,12 @@ class MiddleSection(QWidget):
 
     def set_lines(self, lines):
         self.lines = lines
+        self.selected_line = -1
         
         while self.log_display.count():
             self.log_display.takeAt(0).widget().deleteLater()
         
-        for i, line in enumerate(lines[:50]):
+        for i, line in enumerate(lines):
             label = QPushButton(line[:50] + "..." if len(line) > 50 else line)
             label.setStyleSheet(self.STYLES["unselected_line"])
             
@@ -102,9 +105,12 @@ class MiddleSection(QWidget):
             self.log_display.addWidget(label)
 
     def select_line(self, i):
+        # reset color for previously selected line
+        if self.selected_line != -1:
+            self.log_display.itemAt(self.selected_line).widget().setStyleSheet(self.STYLES["unselected_line"])
+        
         # set color for selected line
-        for j in range(self.log_display.count()):
-            self.log_display.itemAt(j).widget().setStyleSheet(self.STYLES["unselected_line"] if j != i else self.STYLES["selected_line"])
+        self.log_display.itemAt(i).widget().setStyleSheet(self.STYLES["selected_line"])
         
         # update details
         details = parse_line(self.lines[i])
@@ -118,15 +124,35 @@ class MiddleSection(QWidget):
         self.middle_right_layout.itemAt(COLUMN_START + 2).widget().setText(details["date"].strftime("%b %d"))
         self.middle_right_layout.itemAt(COLUMN_START + 3).widget().setText(details["date"].strftime("%H:%M:%S"))
         
+        # set
+        self.selected_line = i
+    
+    def jump_relative(self, n):
+        if self.selected_line == -1:
+            return
+        
+        new_line = self.selected_line + n
+        if new_line < 0 or new_line >= len(self.lines):
+            return
+        
+        self.select_line(new_line)
+
 
 class BottomSection(QWidget):
-    def __init__(self):
+    def __init__(self, jump_relative):
         super().__init__()
         
         # bottom section - previous and next buttons
         bottom_layout = QHBoxLayout()
-        bottom_layout.addWidget(QPushButton("Previous"))
-        bottom_layout.addWidget(QPushButton("Next"))
+        
+        previous = QPushButton("Previous")
+        next = QPushButton("Next")
+        
+        previous.clicked.connect(partial(jump_relative, -1))
+        next.clicked.connect(partial(jump_relative, 1))
+        
+        bottom_layout.addWidget(previous)
+        bottom_layout.addWidget(next)
         
         self.setLayout(bottom_layout)
 
@@ -152,7 +178,7 @@ class MainWindow(QMainWindow):
         
         self.top_section = TopSection(self.open_file)
         self.middle_section = MiddleSection()
-        self.bottom_section = BottomSection()
+        self.bottom_section = BottomSection(self.middle_section.jump_relative)
         
         layout.addWidget(self.top_section)
         layout.addWidget(self.middle_section)
