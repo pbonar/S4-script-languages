@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QMainWindow,
 import sys
 from functools import partial
 
-from lib import parse_line, get_ipv4s_from_log, get_user_from_log
+from parse import parse_line, get_ipv4s_from_log, get_user_from_log
 
 
 class TopSection(QWidget):
