@@ -9,14 +9,13 @@ class TopSection(QWidget):
     def __init__(self, open_file):
         super().__init__()
 
-        # Set minimum heights for input fields and buttons
+        # Buttons and inputs init
         self.filename_input = QLineEdit()
         self.filename_input.setPlaceholderText("Enter the filename")
 
         self.open_button = QPushButton("Open")
         self.open_button.clicked.connect(open_file)
 
-        # Create filter inputs and button
         self.from_date_input = QLineEdit()
         self.from_date_input.setPlaceholderText("From Date, Time")
 
@@ -28,11 +27,8 @@ class TopSection(QWidget):
         filter_layout.addWidget(self.from_date_input)
         filter_layout.addWidget(self.to_date_input)
         filter_layout.addWidget(self.open_button)
-
-        # Set minimum height for filter container
         filter_container = QWidget()
         filter_container.setLayout(filter_layout)
-        filter_container.setMinimumHeight(20)  # Adjust the height as needed
 
         # Create main layout
         layout = QHBoxLayout()
