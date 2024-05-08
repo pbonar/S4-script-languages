@@ -33,13 +33,47 @@ def parse_line(line: str) -> LogEntry:
         "details": second_half.strip(),
     }
 
+#TO DO
+def check_date(d_from: str, d_to: str, line: str) -> bool:
+    try:
+        date_from = datetime.strptime(d_from, "%b %d %H:%M:%S")
+    except:
+        date_from = None
+    try:
+        date_to = datetime.strptime(d_to, "%b %d %H:%M:%S")
+    except:
+        date_to = None
+
+    date_act = parse_line(line)["date"]
+
+    if date_to is not None:
+        if date_from is not None:
+            if date_to >= date_act and date_from <= date_act:
+                return True
+            else:
+                return False
+        else:
+            if date_to >= date_act:
+                return True
+            else:
+                return False
+    else:
+        if date_from is not None:
+            if date_from <= date_act:
+                return True
+            else:
+                return False
+        else:
+            return True
+
+
 def get_log_size(line: str) -> str:
     return str(len(line.encode("utf-8"))) + " bytes"
 
 
 def get_ipv4s_from_log(entry: LogEntry) -> list[str]:
     ips = re.findall(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", entry["details"])
-    return list(ips) if ips else []
+    return list(ips) if ips else  []
 
 
 def get_user_from_log(entry: LogEntry) -> str | None:
