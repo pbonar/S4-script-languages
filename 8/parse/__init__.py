@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from typing import TypedDict
 import re
@@ -29,8 +30,11 @@ def parse_line(line: str) -> LogEntry:
         "date": datetime.strptime(date_str, "%b %d %H:%M:%S"),
         "machine_name": machine_name,
         "sshd_pid": sshd_pid,
-        "details": second_half.strip()
+        "details": second_half.strip(),
     }
+
+def get_log_size(line: str) -> str:
+    return str(len(line.encode("utf-8"))) + " bytes"
 
 
 def get_ipv4s_from_log(entry: LogEntry) -> list[str]:

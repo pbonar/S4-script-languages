@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QMainWindow,
 import sys
 from functools import partial
 
-from parse import parse_line, get_ipv4s_from_log, get_user_from_log
+from parse import parse_line, get_ipv4s_from_log, get_user_from_log, get_message_type, get_log_size
 
 
 class TopSection(QWidget):
@@ -63,7 +63,7 @@ class MiddleSection(QWidget):
         details_container.setStyleSheet(self.STYLES["details_container"])
         
         data_widgets = [
-            "Remote host", "User", "Date", "Time", "Status Code", "Method", "Size"
+            "Remote host", "Host", "User", "Date", "Time", "Message Type", "Size of log"
         ]
         
         # fist column
@@ -116,14 +116,19 @@ class MiddleSection(QWidget):
         details = parse_line(self.lines[i])
         ipv4s = get_ipv4s_from_log(details)
         user = get_user_from_log(details)
+        mess_type = get_message_type(details)
+        size = get_log_size(self.lines[i])
         
         # clear middle_right_layout right column
         COLUMN_START = 7
         self.middle_right_layout.itemAt(COLUMN_START).widget().setText(ipv4s[0] if ipv4s else "-")
-        self.middle_right_layout.itemAt(COLUMN_START + 1).widget().setText(user or "-")
-        self.middle_right_layout.itemAt(COLUMN_START + 2).widget().setText(details["date"].strftime("%b %d"))
-        self.middle_right_layout.itemAt(COLUMN_START + 3).widget().setText(details["date"].strftime("%H:%M:%S"))
-        
+        self.middle_right_layout.itemAt(COLUMN_START + 1).widget().setText(details["machine_name"])
+        self.middle_right_layout.itemAt(COLUMN_START + 2).widget().setText(user or "-")
+        self.middle_right_layout.itemAt(COLUMN_START + 3).widget().setText(details["date"].strftime("%b %d"))
+        self.middle_right_layout.itemAt(COLUMN_START + 4).widget().setText(details["date"].strftime("%H:%M:%S"))
+        self.middle_right_layout.itemAt(COLUMN_START + 5).widget().setText(mess_type)
+        self.middle_right_layout.itemAt(COLUMN_START + 6).widget().setText(size)
+
         # set
         self.selected_line = i
     
