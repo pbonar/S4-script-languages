@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QMainWindow, QPushButton, QWidget, QLineEdit, QLabel, QGridLayout, QScrollArea
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QMainWindow, QPushButton, QWidget, QLineEdit, QLabel, QGridLayout, QScrollArea, QDialog, QDialogButtonBox
 import sys
 from functools import partial
 
@@ -178,6 +178,24 @@ class BottomSection(QWidget):
         self.setLayout(bottom_layout)
 
 
+class FileErrorDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Error")
+
+        QBtn = QDialogButtonBox.StandardButton.Ok
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+        message = QLabel("Could not open the file.")
+        self.layout.addWidget(message)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -193,6 +211,9 @@ class MainWindow(QMainWindow):
         # combine all sections
         layout = QVBoxLayout()
         main_widget.setLayout(layout)
+
+        # file error dialog
+        self.file_error_dialog = FileErrorDialog()
 
         # styling
         layout.setContentsMargins(25, 25, 25, 25)
@@ -218,6 +239,7 @@ class MainWindow(QMainWindow):
 
         except FileNotFoundError:
             self.top_section.filename_input.clear()
+            self.file_error_dialog.exec()
 
 
 app = QApplication(sys.argv)
