@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from ipaddress import IPv4Address
 import re
-from typing import List, Union, Optional, Iterator
+from typing import List, Union, Optional, Iterator, overload
 
 class SSHLogEntry(ABC):
     def __init__(self, time: datetime, raw_content: str, pid: str, host: str) -> None:
@@ -139,8 +139,12 @@ class SSHLogJournal:
             entry = OtherInfo(time, raw_content, pid, host)
         return entry in self
 
-    def __getitem__(self, search: Union[slice, int, IPv4Address, str]) -> Union[
-        List[SSHLogEntry], SSHLogEntry]:
+    @overload
+    def __getitem__(self, search: Union[slice, IPv4Address, str]) -> List[SSHLogEntry]: ...
+    @overload
+    def __getitem__(self, search: int) -> SSHLogEntry: ...
+    
+    def __getitem__(self, search: Union[slice, int, IPv4Address, str]) -> Union[SSHLogEntry, List[SSHLogEntry]]:
         if isinstance(search, slice):
             return self._log_entries[search.start:search.stop:search.step]
         elif isinstance(search, int):
@@ -189,7 +193,7 @@ def main() -> None:
         "Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]"))
 
     # duck typing
-    test: List[Union[SSHUser, SSHLogEntry, List[SSHLogEntry]]] = [
+    test: List[Union[SSHUser, SSHLogEntry]] = [
         SSHUser("user123", datetime.now()),
         SSHUser("admin", datetime.now()),
         SSHUser("1abc", datetime.now()),
