@@ -140,7 +140,7 @@ class SSHLogJournal:
         return entry in self
 
     def __getitem__(self, search: Union[slice, int, IPv4Address, str]) -> Union[
-        List[SSHLogEntry], SSHLogEntry, List[SSHLogEntry]]:
+        List[SSHLogEntry], SSHLogEntry]:
         if isinstance(search, slice):
             return self._log_entries[search.start:search.stop:search.step]
         elif isinstance(search, int):
@@ -189,14 +189,13 @@ def main() -> None:
         "Dec 10 09:12:48 LabSZ sshd[24503]: Received disconnect from 187.141.143.180: 11: Bye Bye [preauth]"))
 
     # duck typing
-    test: List[Union[SSHUser, PasswordRejected, PasswordAccepted, OtherInfo, Error, SSHLogEntry]] = [
+    test: List[Union[SSHUser, SSHLogEntry, List[SSHLogEntry]]] = [
         SSHUser("user123", datetime.now()),
         SSHUser("admin", datetime.now()),
         SSHUser("1abc", datetime.now()),
         *journal[5:10]
     ]
     for a in test:
-        print(type(a))
         print(a.validate())
 
 if __name__ == "__main__":
