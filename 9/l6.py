@@ -1,3 +1,4 @@
+import ipaddress
 from abc import ABC, abstractmethod
 from datetime import datetime
 from ipaddress import IPv4Address
@@ -29,14 +30,17 @@ class SSHLogEntry(ABC):
         ip_pattern: str = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
         ip_matched: Optional[re.Match[str]] = re.search(ip_pattern, self._raw_content)
         if ip_matched:
-            return IPv4Address(ip_matched.group())
+            try:
+                return IPv4Address(ip_matched.group())
+            except ipaddress.AddressValueError:
+                return None
         else:
             return None
 
     def __repr__(self) -> str:
         return f"{self.type()} >> time = {self.time}, host = {self.host}, pid = {self.pid}, raw_content = {self._raw_content}"
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, SSHLogEntry)
                 and self.time == other.time
                 and self._raw_content == other._raw_content

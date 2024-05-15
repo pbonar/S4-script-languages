@@ -7,7 +7,7 @@ from l6 import Error, OtherInfo, PasswordAccepted, PasswordRejected, SSHLogJourn
 def test_parse_time():
     journal = SSHLogJournal()
     entry = journal.parse_log("Dec 10 10:54:29 LabSZ sshd[24868]: Received disconnect from 183.62.140.253: 11: Bye Bye [preauth]")
-    
+
     assert entry.time.strftime("%b %d %H:%M:%S") == "Dec 10 10:54:29"
 
 
@@ -24,14 +24,9 @@ def test_valid_ip():
 def test_wrong_ip():
     journal = SSHLogJournal()
     entry = journal.parse_log("Dec 10 06:55:48 LabSZ sshd[24200]: Failed password for invalid user webmaster from 666.777.88.213 port 38926 ssh2")
-    
-    try:
-        _ = entry.has_ip
-    except ipaddress.AddressValueError:
-        assert True
-    else:
-        assert False
 
+    has = entry.has_ip
+    assert not has
 
 def test_no_ip():
     journal = SSHLogJournal()
