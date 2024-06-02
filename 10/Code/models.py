@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Integer, DateTime
+from sqlalchemy import ForeignKey, Integer, DateTime, String
 
 class Base(DeclarativeBase):
     pass
@@ -9,7 +9,7 @@ class Stations(Base):
     __tablename__ = "stations"
 
     station_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column()
+    name: Mapped[str] = mapped_column(String, unique=True)
 
 class Rentals(Base):
     __tablename__ = "rentals"

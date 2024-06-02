@@ -1,21 +1,24 @@
 import sys
 import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from models import Base, Rentals, Stations
+from sqlalchemy.orm import sessionmaker, Session
+from models import Rentals, Stations
 from create_database import create_database
 
 
-def get_or_create_station(session, station_name):
+def get_or_create_station(session: Session, station_name) -> Stations:
     station = session.query(Stations).filter_by(name=station_name).first()
+    
     if station is None:
+        print(f"Station '{station_name}' has been added to the database.", type(station_name))
+        
         station = Stations(name=station_name)
         session.add(station)
         session.commit()
     return station
 
 
-def load_data(csv_file, db_name):
+def load_data(csv_file: str, db_name: str) -> None:
     create_database(db_name)
     engine = create_engine(f'sqlite:///{db_name}.sqlite3')
 
@@ -25,6 +28,9 @@ def load_data(csv_file, db_name):
     data = pd.read_csv(csv_file, encoding='utf-8')
 
     for index, row in data.iterrows():
+        percentage = (index + 1) / len(data) * 100
+        print(f"Progress: {index + 1}/{len(data)} ({percentage:.2f} %)", end='\r')
+        
         rental_station = get_or_create_station(session, row['Stacja wynajmu'])
         return_station = get_or_create_station(session, row['Stacja zwrotu'])
 
