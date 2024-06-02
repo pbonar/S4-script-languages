@@ -10,8 +10,6 @@ def get_or_create_station(session: Session, station_name) -> Stations:
     station = session.query(Stations).filter_by(name=station_name).first()
     
     if station is None:
-        print(f"Station '{station_name}' has been added to the database.", type(station_name))
-        
         station = Stations(name=station_name)
         session.add(station)
         session.commit()
