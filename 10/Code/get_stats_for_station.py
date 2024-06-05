@@ -80,14 +80,14 @@ def number_of_different_bikes_parked_at_station(session: Session, station_name: 
     return len(bikes)
 
 
-def bike_number_more_common_at_station(session: Session, station_name: str) -> int | str:
+def bike_number_most_returned_at_station(session: Session, station_name: str) -> int | str:
     station = session.query(Stations).filter_by(name=station_name).first()
     
     if station is None:
         print(f"Station '{station_name}' not found.")
         sys.exit(1)
     
-    rentals = session.query(Rentals).filter_by(rental_station_id=station.station_id).all()
+    rentals = session.query(Rentals).filter_by(return_station_id=station.station_id).all()
     
     if len(rentals) == 0:
         return "N/A"
@@ -129,7 +129,7 @@ def main() -> None:
     bikes = number_of_different_bikes_parked_at_station(session, station_name)
     print(f"> Number of different bikes parked at {station_name}: {bikes}")
 
-    most_common_bike = bike_number_more_common_at_station(session, station_name)
+    most_common_bike = bike_number_most_returned_at_station(session, station_name)
     print(f"> Most common bike number at {station_name}: {most_common_bike}")
 
 

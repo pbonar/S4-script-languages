@@ -1,6 +1,6 @@
 import os
 from load_data import load_data
-from get_stats_for_station import db_connect, avg_rental_time_starting_at_station, avg_rental_time_ending_at_station, number_of_different_bikes_parked_at_station, bike_number_more_common_at_station
+from get_stats_for_station import db_connect, avg_rental_time_starting_at_station, avg_rental_time_ending_at_station, number_of_different_bikes_parked_at_station, bike_number_most_returned_at_station
 
 
 def test_load_data():
@@ -30,7 +30,7 @@ def test_load_data():
 
     # check if the data was loaded
     cursor.execute("SELECT COUNT(*) FROM rentals;")
-    assert cursor.fetchone()[0] == 4
+    assert cursor.fetchone()[0] == 6
 
     cursor.execute("SELECT COUNT(*) FROM stations;")
     assert cursor.fetchone()[0] == 4
@@ -52,10 +52,10 @@ def test_stats():
     assert avg_rental_time_ending_at_station(session, "S1") == 1005616.0
 
     # test number_of_different_bikes_parked_at_station
-    assert number_of_different_bikes_parked_at_station(session, "S1") == 1
+    assert number_of_different_bikes_parked_at_station(session, "S1") == 2
 
     # test bike_number_more_common_at_station
-    assert bike_number_more_common_at_station(session, "S1") == 1
+    assert bike_number_most_returned_at_station(session, "S1") == 3
 
     # close the session
     session.close()
